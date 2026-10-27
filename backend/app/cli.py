@@ -1,10 +1,12 @@
 import asyncio
+from datetime import timedelta
 from typing import Annotated
 
 import typer
 
 from app.core.db import engine, session_factory
-from app.models import User
+from app.models import Invite, User
+from app.services import invites
 from app.services import users as users_service
 
 app = typer.Typer()
@@ -39,6 +41,27 @@ async def _create_user(email: str, name: str, password: str) -> User:
         await engine.dispose()
 
     return user
+
+
+@app.command("create-invite")
+def create_invite_command(
+    days: Annotated[int, typer.Option(min=1, max=31, help="Срок действия, дни")] = 7,
+) -> None:
+    invite, code = asyncio.run(_create_invite(days))
+    typer.echo(f"Pass code: {code}")
+    typer.echo(f"Expires at: {invite.expires_at:%Y-%m-%d %H:%M} UTC")
+    typer.echo("Save it now: the code is not stored and cannot be shown again")
+
+
+async def _create_invite(days: int) -> Invite:
+    try:
+        async with session_factory() as session:
+            invite = await invites.create_invite(session, timedelta(days=days))
+            await session.commit()
+    finally:
+        await engine.dispose()
+
+    return invite
 
 
 if __name__ == "__main__":

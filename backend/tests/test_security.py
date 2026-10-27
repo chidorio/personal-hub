@@ -1,4 +1,4 @@
-from app.core.security import hash_password, verify_password
+from app.core.security import hash_password, hash_token, verify_password
 
 
 def test_verify_correct_password() -> None:
@@ -18,3 +18,11 @@ def test_same_password_different_hashes() -> None:
     password_hash = hash_password(password)
     password_hash_another = hash_password(password)
     assert password_hash_another != password_hash
+
+
+def test_same_token_hashes() -> None:
+    assert hash_token("123") == hash_token("123")
+
+
+def test_different_token_hashes() -> None:
+    assert hash_token("123") != hash_token("12354")
