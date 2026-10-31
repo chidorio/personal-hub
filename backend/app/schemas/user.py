@@ -8,10 +8,11 @@ class UserCreate(BaseModel):
     email: EmailStr
     name: Annotated[
         str,
-        Field(
-            min_length=1,
-            max_length=100,
-        ),
+        Field(min_length=1, max_length=100),
+    ]
+    invite_code: Annotated[
+        str,
+        Field(min_length=10, max_length=64),
     ]
     password: Annotated[str, Field(min_length=8, max_length=128)]
 
