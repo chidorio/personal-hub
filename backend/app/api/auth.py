@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
+from app.core.security import create_access_token
 from app.models import User
+from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.user import UserCreate, UserRead
 from app.services import auth as auth_service
 from app.services import invites as invites_service
@@ -37,3 +39,19 @@ async def register_user(
     await session.commit()
 
     return user
+
+
+@router.post("/login")
+async def login_user(
+    data: LoginRequest, session: Annotated[AsyncSession, Depends(get_session)]
+) -> TokenResponse:
+    try:
+        user = await auth_service.authenticate(session, data.email, data.password)
+    except auth_service.InvalidCredentialsError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None
+
+    return TokenResponse(access_token=create_access_token(user.id))
