@@ -1,9 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import verify_password
+from app.core.security import create_access_token, verify_password
 from app.models import User
 from app.services import invites as invites_service
+from app.services import refresh_tokens as refresh_tokens_service
 from app.services import users as users_service
 
 
@@ -31,3 +32,11 @@ async def authenticate(session: AsyncSession, email: str, password: str) -> User
         raise InvalidCredentialsError
 
     return user
+
+
+async def login(session: AsyncSession, email: str, password: str) -> tuple[str, str]:
+    user = await authenticate(session, email, password)
+    access_token = create_access_token(user.id)
+    ref_token = await refresh_tokens_service.issue_refresh_token(session, user)
+
+    return access_token, ref_token

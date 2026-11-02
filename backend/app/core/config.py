@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     jwt_secret: SecretStr
     access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 30
 
     @property
     def database_url(self) -> str:
