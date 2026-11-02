@@ -37,6 +37,19 @@ async def authenticate(session: AsyncSession, email: str, password: str) -> User
 async def login(session: AsyncSession, email: str, password: str) -> tuple[str, str]:
     user = await authenticate(session, email, password)
     access_token = create_access_token(user.id)
-    ref_token = await refresh_tokens_service.issue_refresh_token(session, user)
+    refresh_token = await refresh_tokens_service.issue_refresh_token(session, user)
 
-    return access_token, ref_token
+    return access_token, refresh_token
+
+
+async def refresh(session: AsyncSession, token: str) -> tuple[str, str]:
+    user_id = await refresh_tokens_service.use_refresh_token(session, token)
+    user = await session.get(User, user_id)
+
+    if user is None:
+        raise refresh_tokens_service.InvalidRefreshTokenError
+
+    access_token = create_access_token(user.id)
+    refresh_token = await refresh_tokens_service.issue_refresh_token(session, user)
+
+    return access_token, refresh_token
