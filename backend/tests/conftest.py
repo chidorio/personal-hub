@@ -36,7 +36,12 @@ async def session_maker():
     yield async_sessionmaker(engine, expire_on_commit=False)
 
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE users, invites, refresh_tokens RESTART IDENTITY CASCADE"))
+        await conn.execute(
+            text(
+                "TRUNCATE users, invites, refresh_tokens, spaces, space_members "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
     await engine.dispose()
 
 

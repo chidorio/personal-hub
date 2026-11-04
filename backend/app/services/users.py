@@ -2,7 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
-from app.models import User
+from app.models import SpaceKind, User
+from app.services import spaces as spaces_service
 
 
 class UserAlreadyExistsError(Exception):
@@ -19,5 +20,9 @@ async def create_user(session: AsyncSession, email: str, name: str, password: st
     user = User(email=email, name=name, password_hash=hash_password(password))
     session.add(user)
     await session.flush()
+
+    await spaces_service.create_space(
+        session, spaces_service.PERSONAL_SPACE_NAME, SpaceKind.PERSONAL, user
+    )
 
     return user
