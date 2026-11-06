@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models import SpaceKind
+from app.models import SpaceKind, SpaceRole
 
 
 class SpaceCreate(BaseModel):
@@ -17,3 +17,15 @@ class SpaceRead(BaseModel):
     name: str
     kind: SpaceKind
     created_at: datetime
+
+
+class SpaceMemberAdd(BaseModel):
+    email: EmailStr
+
+
+class SpaceMemberRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    role: SpaceRole
+    joined_at: datetime
