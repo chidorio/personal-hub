@@ -38,7 +38,7 @@ async def session_maker():
     async with engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE users, invites, refresh_tokens, spaces, space_members "
+                "TRUNCATE users, invites, refresh_tokens, spaces, space_members, notes "
                 "RESTART IDENTITY CASCADE"
             )
         )
