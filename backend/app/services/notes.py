@@ -14,10 +14,20 @@ async def create_note(
     return note
 
 
-async def list_notes(session: AsyncSession, space_id: int) -> list[Note]:
+async def list_notes(
+    session: AsyncSession, space_id: int, pinned: bool | None, limit: int, offset: int
+) -> list[Note]:
+    query = select(Note).where(Note.space_id == space_id)
+
+    if pinned is not None:
+        query = query.where(Note.pinned == pinned)
+
     space_notes = await session.scalars(
-        select(Note).where(Note.space_id == space_id).order_by(Note.id)
+        query.order_by(Note.pinned.desc(), Note.updated_at.desc(), Note.id.desc())
+        .limit(limit)
+        .offset(offset)
     )
+
     return list(space_notes.all())
 
 

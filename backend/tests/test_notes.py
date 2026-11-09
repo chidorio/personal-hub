@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import delete, select
 
@@ -456,3 +458,141 @@ async def test_without_token_gets_401(client, session_maker, method):
     )
 
     assert response.status_code == 401
+
+
+async def test_list_pinned_first_then_recent(client, session_maker):
+    users = await create_users(session_maker, count=1)
+    user0 = users[0]
+
+    space0_id = await personal_space_id(session_maker, user0["user"].email)
+    note0 = await create_note(
+        session_maker,
+        space0_id,
+        user0["user"].id,
+        pinned=True,
+        updated_at=datetime(2025, 12, 31, tzinfo=UTC),
+    )
+    note1 = await create_note(
+        session_maker, space0_id, user0["user"].id, updated_at=datetime(2026, 1, 2, tzinfo=UTC)
+    )
+    note2 = await create_note(
+        session_maker, space0_id, user0["user"].id, updated_at=datetime(2026, 1, 1, tzinfo=UTC)
+    )
+
+    response = await client.get(
+        f"/spaces/{space0_id}/notes",
+        headers={"Authorization": f"Bearer {user0['token']}"},
+    )
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [note0.id, note1.id, note2.id]
+
+
+async def test_list_same_updated_at_sorted_by_id(client, session_maker):
+    users = await create_users(session_maker, count=1)
+    user0 = users[0]
+
+    space0_id = await personal_space_id(session_maker, user0["user"].email)
+
+    async with session_maker() as session:
+        note1 = Note(space_id=space0_id, author_id=user0["user"].id, title="test")
+        note2 = Note(space_id=space0_id, author_id=user0["user"].id, title="test")
+        session.add(note1)
+        session.add(note2)
+        await session.commit()
+
+    response = await client.get(
+        f"/spaces/{space0_id}/notes",
+        headers={"Authorization": f"Bearer {user0['token']}"},
+    )
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [note2.id, note1.id]
+
+
+async def test_list_limit_offset(client, session_maker):
+    users = await create_users(session_maker, count=1)
+    user0 = users[0]
+
+    space0_id = await personal_space_id(session_maker, user0["user"].email)
+
+    note0 = await create_note(session_maker, space0_id, user0["user"].id)
+    note1 = await create_note(session_maker, space0_id, user0["user"].id)
+    await create_note(session_maker, space0_id, user0["user"].id)
+
+    response = await client.get(
+        f"/spaces/{space0_id}/notes",
+        headers={"Authorization": f"Bearer {user0['token']}"},
+        params={"limit": 2, "offset": 1},
+    )
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [note1.id, note0.id]
+
+
+async def test_list_default_limit(client, session_maker):
+    users = await create_users(session_maker, count=1)
+    user0 = users[0]
+
+    space0_id = await personal_space_id(session_maker, user0["user"].email)
+
+    async with session_maker() as session:
+        session.add_all(
+            [Note(space_id=space0_id, author_id=user0["user"].id, title="test") for _ in range(21)]
+        )
+        await session.commit()
+
+    response = await client.get(
+        f"/spaces/{space0_id}/notes",
+        headers={"Authorization": f"Bearer {user0['token']}"},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) == 20
+
+
+@pytest.mark.parametrize("pinned", [True, False])
+async def test_list_filter_pinned(client, session_maker, pinned):
+    users = await create_users(session_maker, count=1)
+    user0 = users[0]
+
+    space0_id = await personal_space_id(session_maker, user0["user"].email)
+
+    await create_note(session_maker, space0_id, user0["user"].id, pinned=True)
+    await create_note(session_maker, space0_id, user0["user"].id, pinned=False)
+
+    response = await client.get(
+        f"/spaces/{space0_id}/notes",
+        headers={"Authorization": f"Bearer {user0['token']}"},
+        params={"pinned": pinned},
+    )
+
+    assert response.status_code == 200
+    assert [item["pinned"] for item in response.json()] == [pinned]
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ({}, 200),
+        ({"limit": 0}, 422),
+        ({"limit": 101}, 422),
+        ({"offset": -1}, 422),
+        ({"pinned": "abc"}, 422),
+    ],
+)
+async def test_list_rejects_bad_params(client, session_maker, payload, expected):
+    users = await create_users(session_maker, count=1)
+    user0 = users[0]
+
+    space0_id = await personal_space_id(session_maker, user0["user"].email)
+
+    await create_note(session_maker, space0_id, user0["user"].id, pinned=True)
+
+    response = await client.get(
+        f"/spaces/{space0_id}/notes",
+        headers={"Authorization": f"Bearer {user0['token']}"},
+        params=payload,
+    )
+
+    assert response.status_code == expected

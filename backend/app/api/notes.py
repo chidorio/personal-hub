@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentSpaceMember
@@ -16,8 +16,11 @@ router = APIRouter(prefix="/spaces/{space_id}/notes", tags=["notes"])
 async def notes_list(
     space_member: CurrentSpaceMember,
     session: Annotated[AsyncSession, Depends(get_session)],
+    pinned: bool | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[Note]:
-    return await notes_service.list_notes(session, space_member.space_id)
+    return await notes_service.list_notes(session, space_member.space_id, pinned, limit, offset)
 
 
 @router.post("", response_model=NoteRead, status_code=status.HTTP_201_CREATED)
