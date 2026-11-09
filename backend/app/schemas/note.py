@@ -21,3 +21,9 @@ class NoteRead(BaseModel):
     pinned: bool
     created_at: datetime
     updated_at: datetime
+
+
+class NoteUpdate(BaseModel):
+    title: Annotated[str, Field(min_length=1, max_length=200)] = None
+    body: Annotated[str, Field(max_length=50_000)] = None
+    pinned: bool = None

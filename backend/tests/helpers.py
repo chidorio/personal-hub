@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
 from app.core.security import create_access_token
-from app.models import Space, SpaceKind, SpaceMember, User
+from app.models import Note, Space, SpaceKind, SpaceMember, User
 from app.services import spaces as spaces_service
 from app.services import users as users_service
 
@@ -45,3 +45,12 @@ async def personal_space_id(session_maker, user_email):
         )
 
     return space_id
+
+
+async def create_note(session_maker, space_id, user_id, **fields):
+    async with session_maker() as session:
+        note = Note(space_id=space_id, author_id=user_id, **{"title": "test", **fields})
+        session.add(note)
+        await session.commit()
+
+    return note
