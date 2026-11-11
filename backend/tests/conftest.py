@@ -53,7 +53,7 @@ async def client(session_maker):
 
     app.dependency_overrides[get_session] = override_get_session
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as c:
         yield c
     app.dependency_overrides.clear()
 
@@ -88,4 +88,7 @@ async def tokens(client, user) -> dict[str, str]:
     )
     assert response.status_code == 200
 
-    return response.json()
+    return {
+        "access_token": response.json()["access_token"],
+        "refresh_token": response.cookies["refresh_token"],
+    }

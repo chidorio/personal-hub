@@ -1,5 +1,6 @@
 import pytest
 
+from app.core.config import settings
 from tests.conftest import email as user_email
 from tests.conftest import password as user_password
 
@@ -30,7 +31,7 @@ async def test_login_correct_cred(client, user, email, password):
     assert response.status_code == 200
     body = response.json()
     assert "access_token" in body
-    assert "refresh_token" in body
+    assert "refresh_token" not in body
     assert body["token_type"] == "bearer"
 
 
@@ -46,3 +47,15 @@ async def test_login_wrong_data(client, user, email, password):
     response = await post_login(client, email, password)
     assert response.status_code == 401
     assert response.json()["detail"] == "Incorrect email or password"
+
+
+async def test_login_sets_refresh_cookie(client, user):
+    response = await post_login(client, user["email"], user["password"])
+
+    cookie = response.headers["set-cookie"]
+    assert "refresh_token=" in cookie
+    assert "HttpOnly" in cookie
+    assert "Secure" in cookie
+    assert "SameSite=strict" in cookie
+    assert "Path=/" in cookie
+    assert f"Max-Age={settings.refresh_token_ttl_days * 24 * 60 * 60}" in cookie
