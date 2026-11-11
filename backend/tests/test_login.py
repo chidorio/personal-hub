@@ -27,7 +27,7 @@ async def post_login(client, email, password):
 async def test_login_correct_cred(client, user, email, password):
     response = await post_login(client, email, password)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     body = response.json()
     assert "access_token" in body
     assert "refresh_token" in body
