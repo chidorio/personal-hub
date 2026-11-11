@@ -2,7 +2,6 @@
 name = "personal-hub"
 version = "0.1.0"
 description = "Self-hosted personal hub: shared notes, files, Telegram bot, price watching"
-readme = "README.md"
 authors = [
     { name = "GG", email = "mymrin.gm@gmail.com" }
 ]

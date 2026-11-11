@@ -43,7 +43,7 @@ VALID = {"sub": "1", "iat": NOW, "exp": NOW + timedelta(minutes=5)}
     [
         (VALID, SECRET, 200),
         ({**VALID, "exp": NOW - timedelta(minutes=1)}, SECRET, 401),
-        (VALID, "other-secret", 401),
+        (VALID, "other-secret" * 3, 401),
         ({"iat": NOW, "exp": VALID["exp"]}, SECRET, 401),
     ],
     ids=["valid", "expired", "foreign-secret", "no-sub"],
