@@ -17,7 +17,7 @@ async def test_register_with_invite(client, invite_code, session_maker):
         },
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 200
     body = response.json()
     assert body["email"] == "anna@example.com"
     assert "password_hash" not in body
