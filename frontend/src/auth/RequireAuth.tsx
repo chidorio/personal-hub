@@ -1,6 +1,6 @@
-import { Center, Loader } from '@mantine/core'
 import { Navigate, Outlet, useLocation } from 'react-router'
 
+import { FullPageLoader } from '../components/AuthLayout.tsx'
 import { useAuth } from './context.ts'
 
 // Охрана маршрутов. В App.tsx оборачивает закрытые страницы:
@@ -12,11 +12,7 @@ export function RequireAuth() {
 
   if (state.status === 'checking') {
     // Ещё не знаем, вошёл ли пользователь, — не мигаем формой входа.
-    return (
-      <Center h="100vh">
-        <Loader color="ink" />
-      </Center>
-    )
+    return <FullPageLoader />
   }
 
   if (state.status === 'guest') {

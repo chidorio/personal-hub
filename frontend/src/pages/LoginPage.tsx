@@ -1,10 +1,11 @@
-import { Alert, Box, Button, Center, Container, Loader, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 
 import { ApiError } from '../api/client.ts'
 import { useAuth } from '../auth/context.ts'
+import { AuthLayout, FullPageLoader } from '../components/AuthLayout.tsx'
 
 // Текст ошибки для человека, а не код ответа.
 function loginErrorText(error: Error): string {
@@ -13,16 +14,6 @@ function loginErrorText(error: Error): string {
     if (error.status === 422) return 'Проверьте, что email записан полностью, например name@mail.ru.'
   }
   return 'Не удалось войти: сервер не отвечает. Попробуйте ещё раз.'
-}
-
-// Знак приложения: два листа — личное (чернила) и общее (слива), как в favicon.
-function Mark() {
-  return (
-    <Box pos="relative" w={34} h={30} aria-hidden>
-      <Box pos="absolute" left={0} top={0} w={20} h={30} bg="ink.8" style={{ borderRadius: 3 }} />
-      <Box pos="absolute" left={14} top={0} w={20} h={30} bg="plum.8" opacity={0.85} style={{ borderRadius: 3 }} />
-    </Box>
-  )
 }
 
 export function LoginPage() {
@@ -44,17 +35,9 @@ export function LoginPage() {
     onSuccess: () => navigate(from, { replace: true }),
   })
 
-  if (state.status === 'checking') {
-    return (
-      <Center h="100vh">
-        <Loader color="ink" />
-      </Center>
-    )
-  }
+  if (state.status === 'checking') return <FullPageLoader />
   // Уже вошёл (например, открыл /login вручную) — сразу на главную.
-  if (state.status === 'authenticated') {
-    return <Navigate to={from} replace />
-  }
+  if (state.status === 'authenticated') return <Navigate to={from} replace />
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     // Без этого браузер перезагрузит страницу, отправив форму по-старому.
@@ -63,47 +46,44 @@ export function LoginPage() {
   }
 
   return (
-    <Container size={380} py={{ base: 48, sm: 120 }}>
-      <Stack gap="xl">
+    <AuthLayout title="Вход" subtitle="Личные и общие заметки — после входа.">
+      <form onSubmit={handleSubmit}>
         <Stack gap="md">
-          <Mark />
-          <Stack gap={4}>
-            <Title order={1}>Вход</Title>
-            <Text c="dimmed">Личные и общие заметки — после входа.</Text>
-          </Stack>
+          <TextInput
+            label="Email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.currentTarget.value)}
+          />
+          <PasswordInput
+            label="Пароль"
+            autoComplete="current-password"
+            required
+            maxLength={128}
+            value={password}
+            onChange={(event) => setPassword(event.currentTarget.value)}
+          />
+
+          {loginMutation.isError && (
+            <Alert color="red" variant="light" role="alert">
+              {loginErrorText(loginMutation.error)}
+            </Alert>
+          )}
+
+          <Button type="submit" loading={loginMutation.isPending} mt="xs">
+            Войти
+          </Button>
         </Stack>
+      </form>
 
-        <form onSubmit={handleSubmit}>
-          <Stack gap="md">
-            <TextInput
-              label="Email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.currentTarget.value)}
-            />
-            <PasswordInput
-              label="Пароль"
-              autoComplete="current-password"
-              required
-              maxLength={128}
-              value={password}
-              onChange={(event) => setPassword(event.currentTarget.value)}
-            />
-
-            {loginMutation.isError && (
-              <Alert color="red" variant="light" role="alert">
-                {loginErrorText(loginMutation.error)}
-              </Alert>
-            )}
-
-            <Button type="submit" loading={loginMutation.isPending} mt="xs">
-              Войти
-            </Button>
-          </Stack>
-        </form>
-      </Stack>
-    </Container>
+      <Text size="sm" c="dimmed">
+        Есть приглашение?{' '}
+        <Anchor component={Link} to="/register" size="sm">
+          Зарегистрироваться
+        </Anchor>
+      </Text>
+    </AuthLayout>
   )
 }
