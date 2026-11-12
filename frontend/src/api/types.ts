@@ -15,3 +15,13 @@ export type User = {
   name: string
   created_at: string // datetime приходит в JSON строкой ISO 8601
 }
+
+// app/schemas/space.py → SpaceRead
+export type SpaceKind = 'personal' | 'shared'
+
+export type Space = {
+  id: number
+  name: string
+  kind: SpaceKind
+  created_at: string
+}
