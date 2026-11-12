@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Два пересекающихся листа: личное (чернила) и общее (слива) пространство -->
+  <rect x="3" y="5" width="17" height="22" rx="2" fill="#2f4b8a"/>
+  <rect x="12" y="5" width="17" height="22" rx="2" fill="#8c3d63" fill-opacity="0.85"/>
+</svg>
