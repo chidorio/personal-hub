@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 
 import App from './App.tsx'
+import { AuthProvider } from './auth/AuthProvider.tsx'
 import { cssVariablesResolver, theme } from './theme.ts'
 
 // Один клиент TanStack Query на всё приложение: в нём кэш ответов API.
@@ -23,14 +24,17 @@ const queryClient = new QueryClient({
   },
 })
 
-// Обёртки снаружи внутрь: тема Mantine → кэш запросов → роутер → приложение.
+// Обёртки снаружи внутрь: тема Mantine → кэш запросов → состояние входа → роутер → приложение.
+// AuthProvider внутри QueryClientProvider: при выходе он очищает кэш запросов.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </AuthProvider>
       </QueryClientProvider>
     </MantineProvider>
   </StrictMode>,

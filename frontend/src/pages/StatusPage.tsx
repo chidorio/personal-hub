@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from '../api/client.ts'
 
-// Временная стартовая страница шага 4.1: проверяет, что фронтенд видит API через прокси.
-// На шаге 4.2 «/» станет входом или списком пространств.
+// Служебная страница /status: проверяет, что фронтенд видит API через прокси.
 
 type CheckState = 'loading' | 'ok' | 'error'
 
