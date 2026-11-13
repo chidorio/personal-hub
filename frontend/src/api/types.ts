@@ -25,3 +25,10 @@ export type Space = {
   kind: SpaceKind
   created_at: string
 }
+
+// app/schemas/space.py → SpaceMemberRead
+export type SpaceMember = {
+  user_id: number
+  role: 'owner' | 'member'
+  joined_at: string
+}

@@ -2,6 +2,7 @@ import { Alert, Anchor, Loader, Stack, Text, Title } from '@mantine/core'
 import { Link, useParams } from 'react-router'
 
 import { spaceColor, useSpaces } from '../api/spaces.ts'
+import { AddMemberForm } from '../components/AddMemberForm.tsx'
 
 // Страница одного пространства: /spaces/:spaceId. Заметки появятся на шаге 4.4.
 export function SpacePage() {
@@ -47,6 +48,8 @@ export function SpacePage() {
         </Text>
       </Stack>
       <Text>Заметок пока нет.</Text>
+      {/* Участников добавляют только в общее: в личное бэкенд вернёт 409. */}
+      {space.kind === 'shared' && <AddMemberForm spaceId={space.id} />}
     </Stack>
   )
 }

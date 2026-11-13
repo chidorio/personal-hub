@@ -1,9 +1,11 @@
 import { Anchor, Box, Button, Container, Group, Text } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { useMutation } from '@tanstack/react-query'
 import { Link, Outlet, useLocation } from 'react-router'
 
 import { spaceColor, useSpaces } from '../api/spaces.ts'
 import { useAuth } from '../auth/context.ts'
+import { CreateSpaceModal } from './CreateSpaceModal.tsx'
 import { Mark } from './Mark.tsx'
 
 // Каркас закрытых страниц: шапка + место для страницы (Outlet).
@@ -15,6 +17,8 @@ export function AppShell() {
   // оба компонента читают из кэша по ключу ['spaces'].
   const spaces = useSpaces()
   const location = useLocation()
+  // useDisclosure — готовый «выключатель» из Mantine: [открыто?, { open, close }].
+  const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false)
 
   // Какое пространство открыто — достаём id из адреса /spaces/3.
   const match = location.pathname.match(/^\/spaces\/(\d+)/)
@@ -60,7 +64,11 @@ export function AppShell() {
                     </Button>
                   )
                 })}
+                <Button size="compact-sm" variant="subtle" color="gray" onClick={openCreate}>
+                  + Общее
+                </Button>
               </Group>
+              <CreateSpaceModal opened={createOpened} onClose={closeCreate} />
             </Group>
 
             <Group gap="sm" wrap="nowrap">
