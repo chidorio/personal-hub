@@ -32,3 +32,22 @@ export type SpaceMember = {
   role: 'owner' | 'member'
   joined_at: string
 }
+
+// app/schemas/note.py → NoteRead
+export type Note = {
+  id: number
+  space_id: number
+  author_id: number | null // null — автор удалён (ON DELETE SET NULL)
+  title: string
+  body: string
+  pinned: boolean
+  created_at: string
+  updated_at: string
+}
+
+// app/schemas/note.py → NoteCreate
+export type NoteCreate = {
+  title: string
+  body: string
+  pinned: boolean
+}

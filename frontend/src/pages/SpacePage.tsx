@@ -1,14 +1,18 @@
-import { Alert, Anchor, Loader, Stack, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Divider, Loader, Stack, Text, Title } from '@mantine/core'
 import { Link, useParams } from 'react-router'
 
 import { spaceColor, useSpaces } from '../api/spaces.ts'
+import { useAuth } from '../auth/context.ts'
 import { AddMemberForm } from '../components/AddMemberForm.tsx'
+import { NoteComposer } from '../components/NoteComposer.tsx'
+import { NoteList } from '../components/NoteList.tsx'
 
-// Страница одного пространства: /spaces/:spaceId. Заметки появятся на шаге 4.4.
+// Страница одного пространства: /spaces/:spaceId — заметки, а в общем ещё и участники.
 export function SpacePage() {
   // useParams достаёт кусок адреса: для /spaces/3 → { spaceId: '3' } (строка!).
   const { spaceId } = useParams()
   const spaces = useSpaces()
+  const { state } = useAuth()
 
   if (spaces.isPending) return <Loader color="ink" />
   if (spaces.isError) {
@@ -35,7 +39,11 @@ export function SpacePage() {
     )
   }
 
+  // Сюда попадают только через RequireAuth, но TypeScript этого не знает.
+  if (state.status !== 'authenticated') return null
+
   const color = spaceColor(space.kind)
+  const isShared = space.kind === 'shared'
 
   return (
     <Stack gap="lg" maw={720}>
@@ -43,13 +51,21 @@ export function SpacePage() {
         <Title order={1} c={`${color}.8`}>
           {space.kind === 'personal' ? 'Личное' : space.name}
         </Title>
-        <Text c="dimmed">
-          {space.kind === 'personal' ? 'Видите только вы.' : 'Видят все участники пространства.'}
-        </Text>
+        <Text c="dimmed">{isShared ? 'Видят все участники пространства.' : 'Видите только вы.'}</Text>
       </Stack>
-      <Text>Заметок пока нет.</Text>
+
+      {/* key={space.id}: при переходе в другое пространство React создаст
+          форму заново — недописанная заметка не «переедет» в чужое пространство. */}
+      <NoteComposer key={`composer-${space.id}`} spaceId={space.id} color={color} />
+      <NoteList spaceId={space.id} color={color} isShared={isShared} currentUserId={state.user.id} />
+
       {/* Участников добавляют только в общее: в личное бэкенд вернёт 409. */}
-      {space.kind === 'shared' && <AddMemberForm spaceId={space.id} />}
+      {isShared && (
+        <>
+          <Divider mt="lg" />
+          <AddMemberForm key={`members-${space.id}`} spaceId={space.id} />
+        </>
+      )}
     </Stack>
   )
 }
