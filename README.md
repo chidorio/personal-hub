@@ -3,10 +3,11 @@
 [![CI](https://github.com/chidorio/personal-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/chidorio/personal-hub/actions/workflows/ci.yml)
 
 A self-hosted personal hub for two people: private and shared notes behind one access model.
-The backend is a FastAPI service on PostgreSQL, tested against a real database and shipped as a Docker image.
+The React interface and FastAPI backend run together with PostgreSQL via Docker Compose.
 
-> **Status:** the backend core (auth, spaces, notes) is done. Frontend, full-text search, file attachments,
-> Telegram bot and price-drop alerts are next — see [Roadmap](#roadmap).
+Sign in to create, edit, pin and delete notes in a personal or shared space. The interface is in Russian.
+
+![Personal Hub sign-in screen with email and password fields and a registration link](docs/login.png)
 
 ## Features
 
@@ -23,12 +24,13 @@ The backend is a FastAPI service on PostgreSQL, tested against a real database a
 | Area | Tools |
 |---|---|
 | API | Python 3.13, FastAPI, Pydantic v2 |
-| Database | PostgreSQL 17, SQLAlchemy 2.0 (async, asyncpg), Alembic |
+| Web interface | React, TypeScript, Vite, Mantine, TanStack Query |
+| Database | PostgreSQL 17, SQLAlchemy (async, asyncpg), Alembic |
 | Security | PyJWT (HS256), Argon2id password hashing (pwdlib) |
 | CLI | Typer |
 | Tests | pytest, httpx `AsyncClient`, separate test database |
 | Tooling | uv, ruff, pre-commit |
-| Delivery | Docker (multi-stage, non-root), Docker Compose, GitHub Actions, GitHub Container Registry |
+| Delivery | Docker Compose, Nginx, GitHub Actions, GitHub Container Registry |
 
 ## Quick start
 
@@ -46,8 +48,9 @@ Edit `.env`: set `POSTGRES_PASSWORD` and `JWT_SECRET` (the file shows how to gen
 docker compose up -d --build
 ```
 
-This starts PostgreSQL, waits until it is healthy, applies migrations in a one-off `migrate` container
-and then starts the API on <http://localhost:8000>.
+Open the app at <http://localhost:8081>. Compose starts PostgreSQL, applies migrations and starts
+FastAPI. Nginx serves the interface and forwards requests under `/api/` to FastAPI.
+To check the connection, open <http://localhost:8081/api/health>. It should return `{"status":"ok"}`.
 
 Create an invite code:
 
@@ -55,11 +58,9 @@ Create an invite code:
 docker compose exec api python -m app.cli create-invite --days 1
 ```
 
-Open the interactive docs at <http://localhost:8000/docs> and:
-
-1. `POST /auth/register` with your email, name, password and the invite code.
-2. `POST /auth/login` and copy the `access_token`.
-3. Click **Authorize**, paste the token, and try the `/spaces` and `/notes` endpoints.
+Open <http://localhost:8081/register> and enter the code along with your name, email and password.
+After registration, open your personal space and create your first note. Returning users can sign in at
+<http://localhost:8081/login>. Interactive API documentation is available at <http://localhost:8000/docs>.
 
 Stop everything with `docker compose down` (add `-v` only if you also want to delete the database).
 
@@ -68,7 +69,7 @@ Stop everything with `docker compose down` (add `-v` only if you also want to de
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/auth/register` | Register with an invite code |
-| `POST` | `/auth/login` | Get access and refresh tokens |
+| `POST` | `/auth/login` | Return an access token and set an HttpOnly refresh cookie |
 | `POST` | `/auth/refresh` | Rotate the refresh token |
 | `POST` | `/auth/logout` | Revoke the refresh token |
 | `GET` | `/users/me` | Current user |
@@ -85,12 +86,13 @@ Stop everything with `docker compose down` (add `-v` only if you also want to de
 - **Index backed by `EXPLAIN`.** The notes list uses a composite index `(space_id, pinned, updated_at, id)`.
   On 200k generated rows it replaced "read the whole space and sort" with a backward index scan that reads
   only the requested page.
-- **Tests against a real database.** 84 tests run on a separate PostgreSQL database with migrations applied,
-  including isolation between users and spaces.
+- **Tests against a real database.** The backend tests run on a separate PostgreSQL database with migrations applied
+  and cover isolation between users and spaces.
 - **Container.** Multi-stage build with uv, runs as a non-root user; migrations run as a separate Compose
   service so the API never starts on an outdated schema.
-- **CI/CD.** Every push runs ruff and pytest (with a PostgreSQL service). On `main`, the image is built
-  and published to GHCR, tagged `latest` and with the commit SHA.
+- **CI/CD.** Pull requests and pushes to `main` run Ruff and pytest for the backend and Oxlint,
+  TypeScript checks and a Vite build for the frontend. On `main`, the API image is published to GHCR
+  with the tags `latest` and the commit SHA.
 
 ## Local development
 
@@ -139,6 +141,10 @@ personal-hub/
 │   ├── migrations/     # Alembic
 │   ├── tests/
 │   └── Dockerfile
+├── frontend/
+│   ├── src/            # React pages, components and API client
+│   ├── nginx.conf      # client-side routes and API proxy
+│   └── Dockerfile      # build with Node.js, serve with Nginx
 ├── .github/workflows/ci.yml
 └── docker-compose.yml
 ```
@@ -148,7 +154,7 @@ personal-hub/
 - [x] Users, invite-only registration, JWT with refresh rotation
 - [x] Personal and shared spaces, notes with pagination
 - [x] CI, Docker image, Compose
-- [ ] React frontend
+- [x] React frontend for personal and shared notes, served by Nginx
 - [ ] Full-text search (`tsvector` + GIN)
 - [ ] Redis: cache, login rate limiting
 - [ ] Celery + Telegram bot: notes from Telegram, notifications
