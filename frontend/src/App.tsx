@@ -4,6 +4,7 @@ import { RequireAuth } from './auth/RequireAuth.tsx'
 import { AppShell } from './components/AppShell.tsx'
 import { HomeRedirect } from './pages/HomeRedirect.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
+import { NotePage } from './pages/NotePage.tsx'
 import { NotFoundPage } from './pages/NotFoundPage.tsx'
 import { RegisterPage } from './pages/RegisterPage.tsx'
 import { SpacePage } from './pages/SpacePage.tsx'
@@ -25,6 +26,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/spaces/:spaceId" element={<SpacePage />} />
+          <Route path="/spaces/:spaceId/notes/:noteId" element={<NotePage />} />
         </Route>
       </Route>
 

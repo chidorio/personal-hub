@@ -1,6 +1,6 @@
 // Заметки пространства: ключ кэша, список страницами и создание.
 
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { apiFetch } from './client.ts'
 import type { Note, NoteCreate } from './types.ts'
@@ -32,6 +32,51 @@ export function useNotes(spaceId: number) {
     // и hasNextPage станет false (кнопка «Показать ещё» спрячется).
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE,
+  })
+}
+
+// Ключ одной заметки — продолжение ключа списка: ['spaces', 95, 'notes', 12].
+// Поэтому invalidateQueries(notesKey(95)) сбросит и список, и открытые заметки:
+// он действует на все ключи, которые НАЧИНАЮТСЯ с ['spaces', 95, 'notes'].
+export function noteKey(spaceId: number, noteId: number) {
+  return [...notesKey(spaceId), noteId] as const
+}
+
+// Одна заметка: GET /spaces/{id}/notes/{note_id}.
+export function useNote(spaceId: number, noteId: number) {
+  return useQuery({
+    queryKey: noteKey(spaceId, noteId),
+    queryFn: () => apiFetch<Note>(`/spaces/${spaceId}/notes/${noteId}`),
+  })
+}
+
+// Изменить заметку: PATCH. Бэкенд меняет только присланные поля (exclude_unset),
+// поэтому одна функция подходит и для правки текста, и для «Закрепить».
+export function useUpdateNote(spaceId: number, noteId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (changes: Partial<NoteCreate>) =>
+      apiFetch<Note>(`/spaces/${spaceId}/notes/${noteId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(changes),
+      }),
+    // Один вызов по общему началу ключа: открытая заметка перезапросится сразу,
+    // список — когда вернёмся к нему. return — дождаться свежих данных.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey(spaceId) }),
+  })
+}
+
+// Удалить заметку: DELETE → 204.
+export function useDeleteNote(spaceId: number, noteId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiFetch<void>(`/spaces/${spaceId}/notes/${noteId}`, { method: 'DELETE' }),
+    // refetchType: 'none' — только пометить список и заметку устаревшими, ничего не
+    // перезапрашивать сейчас. Иначе открытая страница успела бы запросить уже
+    // удалённую заметку (лишний GET → 404). Список перезапросится сам, когда
+    // NotePage уведёт к нему; а если вернуться «Назад» к удалённой заметке —
+    // её запрос вернёт 404, и страница покажет «Заметка не найдена».
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: notesKey(spaceId), refetchType: 'none' }),
   })
 }
 
